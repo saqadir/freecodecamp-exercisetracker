@@ -55,6 +55,13 @@ function createExcercise(userId, description, duration, date) {
   return excercise.save();
 }
 
+function findExcercise(id, dateFrom, dateTo, limit) {
+  return Excercise.find({
+    userId: id,
+    date: { $gte: dateFrom, $lte: dateTo }
+  }).limit(limit)
+}
+
 //Routes
 app.route('/api/users')
   .get((req, res) => {
@@ -85,7 +92,27 @@ app.post('/api/users/:id/exercises', (req, res) => {
 });
 
 app.get('/api/users/:id/logs', (req, res) => {
-
+  const userId = req.params.id;
+  const dateFrom = req.query.from ? req.query.from : new Date(0);
+  const dateTo = req.query.to ? req.query.to : new Date(Date.now());
+  const limit = req.query.limit ? req.query.limit : 100;
+  findUserById(userId).then((user) => {
+    findExcercise(userId, dateFrom, dateTo, limit)
+      .then(excercises => {
+        res.json({
+          username: user.username,
+          count: excercises.length,
+          _id: user.id,
+          log: excercises.map(excercise => {
+            return {
+              description: excercise.description,
+              duration: excercise.duration,
+              date: excercise.date.toDateString()
+            }
+          })
+        })
+      })
+  })
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
